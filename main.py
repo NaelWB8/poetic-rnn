@@ -1,4 +1,4 @@
-import random
+import random, os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
@@ -17,7 +17,30 @@ index_to_char = dict((i, c) for i, c in enumerate(characters))
 SEQ_LENGTH = 40
 STEP_SIZE = 3
 
-model = tf.keras.models.load_model('textgenerator_model')
+if not os.path.exists("textgenerator_model.keras"):
+    model = Sequential()
+    model.add(LSTM(128, input_shape=(SEQ_LENGTH, len(characters))))
+    model.add(Dense(len(characters)))
+    model.add(Activation('softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer=RMSprop(learning_rate=0.01))
+
+    sentences = []
+    next_chars = []
+
+    for i in range(0, len(text) - SEQ_LENGTH, STEP_SIZE):
+        sentences.append(text[i:i + SEQ_LENGTH])
+        next_chars.append(text[i + SEQ_LENGTH])
+    X = np.zeros((len(sentences), SEQ_LENGTH, len(characters)))
+    y = np.zeros((len(sentences), len(characters)))
+    for i, sentence in enumerate(sentences):
+        for t, char in enumerate(sentence):
+            X[i, t, char_to_index[char]] = 1
+        y[i, char_to_index[next_chars[i]]] = 1
+    model.fit(X, y, batch_size=128, epochs=1)
+
+    model.save("textgenerator_model.keras")
+    
+model = tf.keras.models.load_model("textgenerator_model.keras")
 
 def sample(preds, temperature=1.0):
     preds = np.asarray(preds).astype('float64')
@@ -50,10 +73,10 @@ def generate_text(length, temperature):
 
 #output
 print('---------0.2----------')
-print(generate_text(300, 0.2))
+print(generate_text(300, 0.2), '\n')
 print('---------0.4----------')
-print(generate_text(300, 0.4))
+print(generate_text(300, 0.4) , '\n')
 print('---------0.6----------')
-print(generate_text(300, 0.6))
+print(generate_text(300, 0.6) , '\n')
 print('---------0.8----------')
-print(generate_text(300, 0.8))
+print(generate_text(300, 0.8), '\n')
